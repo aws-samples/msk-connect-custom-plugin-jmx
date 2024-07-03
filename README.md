@@ -28,7 +28,7 @@ The above architecture demonstrates how we build an Amazon MSK Connect Custom pl
 3.	**Create a connector** using the custom plugin to capture CDC from the source and stream it to the sink.
 
 ### Implementation Details
-This github project is a sample implementation of the custom code wrapper, built on top of debezium-connector-mysql-2.5.2.Final-plugin that:
+This github project is a sample implementation of the custom code wrapper, built on top of [debezium-connector-mysql-2.5.2.Final-plugin](https://repo1.maven.org/maven2/io/debezium/debezium-connector-mysql/2.5.2.Final/debezium-connector-mysql-2.5.2.Final-plugin.tar.gz) that:
 
 Creates a new Maven project with dependencies on:
 1.	**Debezium MySQL Connector** to integrate with the connector plugin for  the core CDC functionalities 
@@ -43,7 +43,7 @@ Creates a new Maven project with dependencies on:
 You can either build this project locally and package the Maven project as a jar and include it in the debezium-connector-mysql-2.5.2.Final-plugin. Then package the updated  debezium-connector-mysql-2.5.2.Final-plugin as a zip file and use it as a custom plugin in MSK Connect. Alternatively, you can use the  custom-debezium-mysql-connector-plugin.zip attached as part of this github repository.
 
 #### Create a Connector with the custom plugin
-To try this on your AWS account, you can refer to the Setup lab in the MSK Connect workshop and follow the instructions below to create the connector:
+To try this on your AWS account, you can refer to the [Setup](https://catalog.us-east-1.prod.workshops.aws/workshops/24d19e6d-0c60-4732-8861-343f20ef2b7f/en-US/setup) lab in the MSK Connect workshop and follow the instructions below to create the connector:
 Upload the custom-debezium-mysql-connector-plugin.zip  to msk-lab-_${ACCOUNT_ID}_-plugins-bucket/debezium path.
 
  ![image](https://github.com/aws-samples/msk-connect-custom-plugin-jmx/assets/65406323/77f6a786-93a9-48d7-83fc-5f95f1edcfaf)
@@ -57,7 +57,7 @@ Enter custom-debezium-mysql-connector-plugin for the plugin name. Optionally, en
 ![image](https://github.com/aws-samples/msk-connect-custom-plugin-jmx/assets/65406323/12782919-fd22-4d0b-b6c2-1cce846f78e4)
 
 After a few seconds you should see the plugin is created and the status is Active.
-Customize the worker configuration for the connector by following the instructions in the Customise worker configuration lab. 
+Customize the worker configuration for the connector by following the instructions in the [Customise worker configuration](https://catalog.us-east-1.prod.workshops.aws/workshops/24d19e6d-0c60-4732-8861-343f20ef2b7f/en-US/sourceconnectors/source-connector-setup#customise-worker-configuration) lab. 
 #### Create MSK Connector
 
 From the MSK section choose Connectors, then click **Create connector**. Choose custom-debezium-mysql-connector-plugin from the list of Custom Plugins, Click **Next**.
@@ -113,7 +113,7 @@ Replace the <MSK Bootstrap Server Address>, and <Aurora RDS MySQL Endpoint>, <Yo
 Follow the remaining instructions from the [Create MSK Connector lab](https://catalog.us-east-1.prod.workshops.aws/workshops/24d19e6d-0c60-4732-8861-343f20ef2b7f/en-US/sourceconnectors/source-connector-setup#create-msk-connector) and create the connector. Ensure that the connector status changes to **Running**.
 **Verify the replication in the Kafka cluster and CloudWatch Metrics**
 
-Follow the instruction in the Verify the replication in the Kafka cluster lab to setup a client and make changes to the source DB and verify that the changes are captured and sent to Kafka topics by the connector. 
+Follow the instruction in the [Verify the replication in the Kafka cluster](https://catalog.us-east-1.prod.workshops.aws/workshops/24d19e6d-0c60-4732-8861-343f20ef2b7f/en-US/sourceconnectors/verify-source-connector) lab to setup a client and make changes to the source DB and verify that the changes are captured and sent to Kafka topics by the connector. 
 To verify that the connector has published the JMX metrics to Amazon CloudWatch, click on Metrics → All Metrics in the CloudWatch console. Under custom namespace, you can see MSK_Connect with DBServerName as the dimension. Click on DBServerName to view the metrics.
 
 ![image](https://github.com/aws-samples/msk-connect-custom-plugin-jmx/assets/65406323/40a16dd0-7899-499d-843f-c3324e82cd4a)
