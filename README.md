@@ -85,12 +85,12 @@ database.server.id=123456
 database.server.name=salesdb
 database.port=3306
 key.converter.schemas.enable=false
-database.hostname=**<Your Aurora MySQL database endpoint>**
-database.password=**<Your Database Password>**
+database.hostname=<--Your Aurora MySQL database endpoint-->
+database.password=<--Your Database Password-->
 value.converter.schemas.enable=false
 database.include.list=salesdb
 schema.history.internal.kafka.topic=internal.dbhistory.salesdb
-schema.history.internal.kafka.bootstrap.servers=**<MSK Bootstrap Server Address>**
+schema.history.internal.kafka.bootstrap.servers=<--Your MSK Bootstrap Server Address-->
 
 schema.history.internal.producer.sasl.mechanism=AWS_MSK_IAM
 schema.history.internal.consumer.sasl.mechanism=AWS_MSK_IAM
@@ -103,15 +103,16 @@ schema.history.internal.producer.security.protocol=SASL_SSL
 
 connect.jmx.port=7098
 cloudwatch.namespace.name=MSK_Connect
-cloudwatch.region=**<Your CloudWatch Region>**
+cloudwatch.region=<--Your CloudWatch Region-->
 ```
 
-Replace the <MSK Bootstrap Server Address>, and <Aurora RDS MySQL Endpoint>, <Your CloudWatch Region> with the addresses you pasted in your notepad application.
+Replace the <--Your Aurora MySQL database endpoint-->, <--Your Database Password-->, <--Your MSK Bootstrap Server Address-->,<--Your CloudWatch Region--> with the corresponding details from your account.
 
 ![image](https://github.com/aws-samples/msk-connect-custom-plugin-jmx/assets/65406323/55486fe8-30fc-41af-bb80-d15f27db2d95)
 
 Follow the remaining instructions from the [Create MSK Connector lab](https://catalog.us-east-1.prod.workshops.aws/workshops/24d19e6d-0c60-4732-8861-343f20ef2b7f/en-US/sourceconnectors/source-connector-setup#create-msk-connector) and create the connector. Ensure that the connector status changes to **Running**.
-**Verify the replication in the Kafka cluster and CloudWatch Metrics**
+
+#### Verify the replication in the Kafka cluster and CloudWatch Metrics
 
 Follow the instruction in the [Verify the replication in the Kafka cluster](https://catalog.us-east-1.prod.workshops.aws/workshops/24d19e6d-0c60-4732-8861-343f20ef2b7f/en-US/sourceconnectors/verify-source-connector) lab to setup a client and make changes to the source DB and verify that the changes are captured and sent to Kafka topics by the connector. 
 To verify that the connector has published the JMX metrics to Amazon CloudWatch, click on Metrics → All Metrics in the CloudWatch console. Under custom namespace, you can see MSK_Connect with DBServerName as the dimension. Click on DBServerName to view the metrics.
