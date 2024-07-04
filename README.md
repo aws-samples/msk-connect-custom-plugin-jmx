@@ -106,7 +106,7 @@ cloudwatch.namespace.name=MSK_Connect
 cloudwatch.region=<--Your CloudWatch Region-->
 ```
 
-Replace the <--Your Aurora MySQL database endpoint-->, <--Your Database Password-->, <--Your MSK Bootstrap Server Address-->,<--Your CloudWatch Region--> with the corresponding details from your account.
+Replace the <--Your Aurora MySQL database endpoint-->, <--Your Database Password-->, <--Your MSK Bootstrap Server Address-->, <--Your CloudWatch Region--> with the corresponding details from your account.
 
 ![image](https://github.com/aws-samples/msk-connect-custom-plugin-jmx/assets/65406323/55486fe8-30fc-41af-bb80-d15f27db2d95)
 
