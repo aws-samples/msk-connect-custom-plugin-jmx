@@ -9,6 +9,17 @@ While MSK Connect provides a range of built-in connectors for popular data sourc
 In this solution, we'll demonstrate how to build a custom module for the Debezium MySQL connector plugin to export its JMX metrics and publish them as custom metrics to Amazon CloudWatch.
 
 ### Solution Overview
+Following diagram shows the workflow of using Debezium MySQL Connector as a custom plugin in MSK Connect for CDC from a Amazon Aurora MySQL compatible database (data source) to Amazon Simple Storage Service (Amazon S3) sink.
+
+ ![image](https://github.com/aws-samples/msk-connect-custom-plugin-jmx/assets/65406323/12f7342e-4f14-4f27-93ee-13b862abcfc1)
+
+1. On the producer side, MySQL binary log (binlog) is enabled to record all the operations in the order in which they are committed to the database. 
+2. Debezium MySQL Connector continuously monitors the MySQL databases and captures the row-level changes by reading the MySQL bin logs and streams them as change events to Kafka topics in Amazon MSK. 
+3. Amazon S3 Sink Connector reads the records from Kafka topics in Amazon MSK and deserializes the records.
+4. Amazon S3 Sink Connector exports the deserialized records and stores it in S3. 
+
+In the following sections, we will discuss the steps to build a custom module for the Debezium MySQL connector and export the JMX metrics provided by the connector and publish them as custom metrics to Amazon CloudWatch. 
+
 The Debezium MySQL connector provides three types of metrics in addition to the built-in support for JMX metrics that Kafka, and Kafka Connect provide by default. 
   1.	**Snapshot metrics** provide information about connector operation while performing a snapshot.
   2.	**Streaming metrics** provide information about connector operation when the connector is reading the binlog.
@@ -17,6 +28,8 @@ The Debezium MySQL connector provides three types of metrics in addition to the 
 In this code sample, as an example we showcase how to export JMX metric **MilliSecondsBehindDataSource** streaming metric emitted by the Debezium MySQL Connector plugin and publish them as custom metrics to Amazon CloudWatch. This is achieved by creating a custom code wrapper around the Debezium MySQL Connector Plugin. The **MilliSecondsBehindDataSource** metric indicates the number of milliseconds between the timestamp of the last change event and the time when the connector processes it, accounting for any clock differences between the database server and the connector's host machine.
 
 ### Architecture
+
+![image](https://github.com/aws-samples/msk-connect-custom-plugin-jmx/assets/65406323/c0a2435d-d89a-426e-8785-1021e689e206)
 
 The above architecture demonstrates how we build an Amazon MSK Connect Custom plugin which reports JMX metrics and pushes the metrics to CloudWatch, the high-level steps are as follows
 1.	**Create a Custom Module**: Create a new Maven project that will contain your custom code to
