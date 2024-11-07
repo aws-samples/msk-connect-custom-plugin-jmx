@@ -1,16 +1,21 @@
 package com.amazonaws.msk.debezium.mysql.connect;
 
-import io.debezium.connector.mysql.*;
-import io.debezium.util.*;
-import org.slf4j.*;
+import io.debezium.connector.mysql.MySqlConnector;
+import io.debezium.util.Strings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javax.management.*;
-import javax.management.remote.*;
-import java.io.*;
-import java.lang.management.*;
-import java.rmi.registry.*;
-import java.util.*;
-import java.util.regex.*;
+import javax.management.MBeanServer;
+import javax.management.remote.JMXConnectorServer;
+import javax.management.remote.JMXConnectorServerFactory;
+import javax.management.remote.JMXServiceURL;
+import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.rmi.registry.LocateRegistry;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 import static com.amazonaws.msk.debezium.mysql.connect.Configuration.*;
 
