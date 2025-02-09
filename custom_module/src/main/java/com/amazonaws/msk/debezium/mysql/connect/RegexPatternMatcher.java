@@ -8,7 +8,6 @@ public class RegexPatternMatcher {
     public static boolean isMatch(String condition){
         // Flag to track if any pattern matches
         boolean matchFound = true;
-
         // Iterate through each pattern and check for a match
         for (Pattern pattern : DebeziumMySqlMetricsConnector.getMetricList()) {
             matchFound = false;

@@ -1,6 +1,8 @@
 package com.amazonaws.msk.debezium.mysql.connect;
 
 
+import org.slf4j.*;
+
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -9,6 +11,7 @@ import java.util.TimerTask;
  */
 public class Scheduler {
     private final Timer t = new Timer();
+    private static final Logger LOGGER = LoggerFactory.getLogger(DebeziumMySqlMetricsConnector.class);
 
     public TimerTask schedule(final Runnable r, long delay, long period) {
         final TimerTask task = new TimerTask() {
@@ -16,7 +19,11 @@ public class Scheduler {
                 r.run();
             }
         };
-        t.scheduleAtFixedRate(task, delay,period);
+        try{
+            t.scheduleAtFixedRate(task, delay,period);
+        }catch (RuntimeException ex){
+            LOGGER.error("Timer failed",ex);
+        }
         return task;
     }
 }

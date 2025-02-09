@@ -12,6 +12,7 @@ import javax.management.remote.JMXServiceURL;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.rmi.registry.LocateRegistry;
+import java.rmi.server.*;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -91,7 +92,11 @@ public class DebeziumMySqlMetricsConnector extends MySqlConnector{
 
 		LOGGER.info("Connect JMX Port -  {}  ::  Database Server Name - {} :: CW_NAMESPACE - {} :: CW_REGION - {}", connectJMXPort, databaseServerName, cwNameSpace, cwRegion);
 		try {
-			LocateRegistry.createRegistry(connectJMXPort); 
+			try{
+				LocateRegistry.createRegistry(connectJMXPort);
+			}catch (ExportException ee){
+				LOGGER.error(ee.getMessage(),ee);
+			}
 			MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
 			String jmxServiceURL = String.format(JMX_URL_TEMPLATE, connectJMXPort);
 			LOGGER.info("JMX Service URL :: {}", jmxServiceURL);
