@@ -11,7 +11,7 @@ import java.util.TimerTask;
  */
 public class Scheduler {
     private final Timer t = new Timer();
-    private static final Logger LOGGER = LoggerFactory.getLogger(DebeziumMySqlMetricsConnector.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Scheduler.class);
 
     public TimerTask schedule(final Runnable r, long delay, long period) {
         final TimerTask task = new TimerTask() {
