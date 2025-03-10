@@ -1,0 +1,10 @@
+# Ignore .DS_Store files
+.DS_Store
+../.DS_Store
+../plugin/.DS_Store
+
+# Ignore .idea directory
+.idea/
+
+# Ignore target directory
+target/

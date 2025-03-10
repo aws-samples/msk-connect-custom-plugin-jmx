@@ -11,7 +11,7 @@ In this solution, we'll demonstrate how to build a custom module for the Debeziu
 ### Solution Overview
 Following diagram shows the workflow of using Debezium MySQL Connector as a custom plugin in MSK Connect for CDC from a Amazon Aurora MySQL compatible database (data source) to Amazon Simple Storage Service (Amazon S3) sink.
 
- ![image](https://github.com/aws-samples/msk-connect-custom-plugin-jmx/assets/65406323/12f7342e-4f14-4f27-93ee-13b862abcfc1)
+![image](https://github.com/aws-samples/msk-connect-custom-plugin-jmx/assets/65406323/12f7342e-4f14-4f27-93ee-13b862abcfc1)
 
 1. On the producer side, MySQL binary log (binlog) is enabled to record all the operations in the order in which they are committed to the database. 
 2. Debezium MySQL Connector continuously monitors the MySQL databases and captures the row-level changes by reading the MySQL bin logs and streams them as change events to Kafka topics in Amazon MSK. 
@@ -41,7 +41,7 @@ The above architecture demonstrates how we build an Amazon MSK Connect Custom pl
 3.	**Create a connector** using the custom plugin to capture CDC from the source and stream it to the sink.
 
 ### Implementation Details
-This github project is a sample implementation of the custom code wrapper, built on top of [debezium-connector-mysql-2.5.2.Final-plugin](https://repo1.maven.org/maven2/io/debezium/debezium-connector-mysql/2.5.2.Final/debezium-connector-mysql-2.5.2.Final-plugin.tar.gz) that:
+This github project is a sample implementation of the custom code wrapper, built on top of [debezium-connector-mysql-2.7.3.Final-plugin](https://repo1.maven.org/maven2/io/debezium/debezium-connector-mysql/2.7.3.Final/debezium-connector-mysql-2.7.3.Final-plugin.tar.gz) that:
 
 Creates a new Maven project with dependencies on:
 1.	**Debezium MySQL Connector** to integrate with the connector plugin for  the core CDC functionalities 
@@ -50,13 +50,23 @@ Creates a new Maven project with dependencies on:
  
 **DebeziumMySqlMetricsConnector**: Integrates with the Debezium MySQL Connector by extending MySqlConnector class. This gets you the access to the connector's entry point to execute custom code.This class overrides the start method to get the configuration details, creates a JMX Registry and starts the JMX server. It then schedules the execution of the JMX metrics exporter at regular intervals 
 
-**JMXMetricsExporter:** A custom class for connecting to the JMX Server, querying the MilliSecondBehindSource JMX metric, and converting it into a suitable format for exporting to CloudWatch. It also implements the logic for pushing the JMX metrics to Amazon CloudWatch using the CloudWatch PutMetricData API in AWS SDK for Java.
+**JMXMetricsExporter:** A custom class for connecting to the JMX Server, querying JMX metric, and converting it into a suitable format for exporting to CloudWatch. It also implements the logic for pushing the JMX metrics to Amazon CloudWatch using the CloudWatch PutMetricData API in AWS SDK for Java.
+
+### Configuration properties
+This github project include some extra configuration properties that can be added to your connector configuration
+
+**connect.jmx.port** This is local JMX port
+**cloudwatch.namespace.name** AWS CloudWatch metrics custom namespace name to send your metrics 
+**cloudwatch.region** the AWS CloudWatch region
+**cloudwatch.metrics.include** A comma-separated list of regex patterns that match the custom metrics to be sent to CloudWatch. If left empty, the plugin will send all metrics defined in the project.
+**cloudwatch.metrics.exclude** A comma-separated list of regex patterns used to exclude specific custom CloudWatch metrics from being sent. If left empty, the plugin will send all metrics defined in the project, or all metrics that match the cloudwatch.metrics.include list, whichever is applicable.
+
 
 #### Packaging and deploying the custom plugin
-You can either build this project locally and package the Maven project as a jar and include it in the debezium-connector-mysql-2.5.2.Final-plugin. Then package the updated  debezium-connector-mysql-2.5.2.Final-plugin as a zip file and use it as a custom plugin in MSK Connect. Alternatively, you can use the  custom-debezium-mysql-connector-plugin.zip attached as part of this github repository.
+You can either build this project locally and package the Maven project as a jar and include it in the debezium-connector-mysql-2.7.3.Final-plugin. Then package the updated  debezium-connector-mysql-2.7.3.Final-plugin as a zip file and use it as a custom plugin in MSK Connect. Alternatively, you can use the  custom-debezium-mysql-connector-plugin.zip attached as part of this github repository.
 
 #### Create a Connector with the custom plugin
-To try this on your AWS account, you can refer to the [Setup](https://catalog.us-east-1.prod.workshops.aws/workshops/24d19e6d-0c60-4732-8861-343f20ef2b7f/en-US/setup) lab in the MSK Connect workshop and follow the instructions below to create the connector:
+To try this on your AWS account, you can refer to the [Getting Started](https://catalog.us-east-1.prod.workshops.aws/workshops/24d19e6d-0c60-4732-8861-343f20ef2b7f/en-US) lab in the MSK Connect workshop and follow the instructions below to create the connector:
 Upload the custom-debezium-mysql-connector-plugin.zip  to msk-lab-_${ACCOUNT_ID}_-plugins-bucket/debezium path.
 
  ![image](https://github.com/aws-samples/msk-connect-custom-plugin-jmx/assets/65406323/77f6a786-93a9-48d7-83fc-5f95f1edcfaf)
@@ -117,6 +127,7 @@ schema.history.internal.producer.security.protocol=SASL_SSL
 connect.jmx.port=7098
 cloudwatch.namespace.name=MSK_Connect
 cloudwatch.region=<--Your CloudWatch Region-->
+cloudwatch.metrics.include=MilliSecondsBehindDataSource
 ```
 
 Replace the <--Your Aurora MySQL database endpoint-->, <--Your Database Password-->, <--Your MSK Bootstrap Server Address-->, <--Your CloudWatch Region--> with the corresponding details from your account.

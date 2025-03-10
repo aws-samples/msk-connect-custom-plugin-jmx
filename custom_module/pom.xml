@@ -2,11 +2,11 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>software.amazon.msk.debezium.mysql</groupId>
   <artifactId>msk-debezium-mysql-metrics-connector</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.0.2-SNAPSHOT</version>
   
   <properties>
         <connect.api.version>3.3.2</connect.api.version>
-        <debezium.connector.mysql.version>2.5.2.Final</debezium.connector.mysql.version>
+        <debezium.connector.mysql.version>2.7.3.Final</debezium.connector.mysql.version>
         <maven.compiler.plugin>3.10.1</maven.compiler.plugin>
     </properties>
     <dependencies>
