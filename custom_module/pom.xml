@@ -1,31 +1,56 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>software.amazon.msk.debezium.mysql</groupId>
-  <artifactId>msk-debezium-mysql-metrics-connector</artifactId>
-  <version>0.0.2-SNAPSHOT</version>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>software.amazon.msk.debezium.mysql</groupId>
+    <artifactId>msk-debezium-mysql-metrics-connector</artifactId>
+    <version>0.0.2-SNAPSHOT</version>
   
-  <properties>
+    <properties>
         <connect.api.version>3.3.2</connect.api.version>
         <debezium.connector.mysql.version>2.7.3.Final</debezium.connector.mysql.version>
         <maven.compiler.plugin>3.10.1</maven.compiler.plugin>
+        <junit.version>5.8.2</junit.version>
+        <maven.surefire.plugin.version>2.22.2</maven.surefire.plugin.version>
     </properties>
     <dependencies>
-		<dependency>
+        <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-api</artifactId>
             <version>${connect.api.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
-			<groupId>io.debezium</groupId>
-    		<artifactId>debezium-connector-mysql</artifactId>
-    		<version>${debezium.connector.mysql.version}</version>
-		</dependency>
-           <dependency>
-    			<groupId>software.amazon.awssdk</groupId>
-    			<artifactId>cloudwatch</artifactId>
-    			<version>2.15.81</version>
-			</dependency>
+            <groupId>io.debezium</groupId>
+            <artifactId>debezium-connector-mysql</artifactId>
+            <version>${debezium.connector.mysql.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>cloudwatch</artifactId>
+            <version>2.15.81</version>
+        </dependency>
+        <!-- JUnit Jupiter API -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <!-- JUnit Jupiter Engine -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <!-- Mockito -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>4.5.1</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     <build>
         <resources>
@@ -36,7 +61,7 @@
         </resources>
         <testResources>
             <testResource>
-                <directory>src/test/resources</directory>
+                <directory>src/test/main/resources</directory>
                 <filtering>true</filtering>
             </testResource>
         </testResources>
@@ -48,6 +73,12 @@
                 <inherited>true</inherited>
                 <configuration>
                     <release>11</release>
+                    <includes>
+                        <include>**/*Test.java</include>
+                    </includes>
+                    <systemPropertyVariables>
+                        <junit.jupiter.extensions.autodetection.enabled>true</junit.jupiter.extensions.autodetection.enabled>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
         </plugins>
