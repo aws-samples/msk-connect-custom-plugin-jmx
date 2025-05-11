@@ -53,11 +53,6 @@ public class DebeziumMySqlMetricsConnector extends MySqlConnector{
 	
 	private static String includeSchemaHistoryMetricsStr;
 	private static String excludeSchemaHistoryMetricsStr;
-
-	//private static Set<Pattern> metricList = new HashSet<>();
-
-
-	// private static boolean includeMetricOption;
 	
 	private static Scheduler getScheduler() {
 		if(scheduler == null) {
@@ -65,7 +60,6 @@ public class DebeziumMySqlMetricsConnector extends MySqlConnector{
 		}
 		return scheduler;
 	}
-	
 	
 	public static String getDatabaseServerName() {
 		return databaseServerName;
@@ -83,13 +77,6 @@ public class DebeziumMySqlMetricsConnector extends MySqlConnector{
 		return cwRegion;
 	}
 
-	/* public static Set<Pattern> getMetricList(){
-		return metricList;
-	} */
-
-	/* public static boolean isIncludeMetricOption(){
-		return includeMetricOption;
-	} */
     public static String getStreamingIncludeMetricsStr() {
         return includeStreamingMetricsStr;
     }
@@ -111,26 +98,15 @@ public class DebeziumMySqlMetricsConnector extends MySqlConnector{
 		return excludeSchemaHistoryMetricsStr;
 	}
 
-
-	/* private void loadMetricsConfiguration(Map<String, String> props){
-		// default to include
-		// includeMetricOption = true;
-		String metricListInput = props.get(CW_METRICS_INCLUDE) != null?  String.valueOf(props.get(CW_METRICS_INCLUDE)) : null;
-		if (metricListInput == null ){
-			metricListInput = props.get(CW_METRICS_EXCLUDE) != null? String.valueOf(props.get(CW_METRICS_EXCLUDE)) : null;
-			includeMetricOption = false;
-		}
-		metricList = Strings.setOfRegex(metricListInput);
-	}
-	 */
-
 @Override
 public void start(Map<String, String> props) {
+
     LOGGER.info("BEGIN::DebeziumMySqlMetricsConnector::start");
     initializeProperties(props);
     setupJMXServer();
     getScheduler().schedule(new JMXMetricsExporter(), SCHEDULER_INITIAL_DELAY, SCHEDULER_PERIOD);
     super.start(props);
+	LOGGER.info("END::DebeziumMySqlMetricsConnector");
 }
 
 private void initializeProperties(Map<String, String> props) {
@@ -138,16 +114,22 @@ private void initializeProperties(Map<String, String> props) {
     databaseServerName = props.getOrDefault(DATABASE_SERVER_NAME_KEY, "");
     cwNameSpace = props.getOrDefault(CW_NAMESPACE_KEY, DEFAULT_CW_NAMESPACE);
     cwRegion = props.getOrDefault(CW_REGION_KEY, null);
-    
+    LOGGER.info("Connect JMX Port - {} :: Database Server Name - {} :: CW_NAMESPACE - {} :: CW_REGION - {}",
+            connectJMXPort, databaseServerName, cwNameSpace, cwRegion);
+	
+	// loadMetricsConfiguration(props);
     includeStreamingMetricsStr = props.getOrDefault(CW_DEBEZIUM_STREAM_METRICS_INCLUDE, null);
     excludeStreamingMetricsStr = props.getOrDefault(CW_DEBEZIUM_STREAM_METRICS_EXCLUDE, null);
     includeSnapshotMetricsStr = props.getOrDefault(CW_DEBEZIUM_SNAPSHOT_METRICS_INCLUDE, null);
     excludeSnapshotMetricsStr = props.getOrDefault(CW_DEBEZIUM_SNAPSHOT_METRICS_EXCLUDE, null);
     includeSchemaHistoryMetricsStr = props.getOrDefault(CW_DEBEZIUM_SCHEMA_HISTORY_METRICS_INCLUDE, null);
     excludeSchemaHistoryMetricsStr = props.getOrDefault(CW_DEBEZIUM_SCHEMA_HISTORY_METRICS_EXCLUDE, null);
-
-    LOGGER.info("Connect JMX Port - {} :: Database Server Name - {} :: CW_NAMESPACE - {} :: CW_REGION - {}", 
-                connectJMXPort, databaseServerName, cwNameSpace, cwRegion);
+	LOGGER.info("Streaming configuration properties - Include Metrics - {} :: Exclude Metrics - {}",
+			includeStreamingMetricsStr, excludeStreamingMetricsStr);
+	LOGGER.info("Snapshot configuration properties Include Metrics - {} :: Exclude Metrics - {}",
+			includeSnapshotMetricsStr, excludeSnapshotMetricsStr);
+	LOGGER.info("Schema History configuration properties - Include Metrics - {} :: Exclude Metrics - {}",
+			includeSchemaHistoryMetricsStr, excludeSchemaHistoryMetricsStr); 
 }
 
 private void setupJMXServer() {

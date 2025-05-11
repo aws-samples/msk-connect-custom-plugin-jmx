@@ -1,10 +1,11 @@
 package com.amazonaws.msk.debezium.mysql.connect;
 
 
-import org.slf4j.*;
-
 import java.util.Timer;
 import java.util.TimerTask;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Class to schedule the JMX metric export.

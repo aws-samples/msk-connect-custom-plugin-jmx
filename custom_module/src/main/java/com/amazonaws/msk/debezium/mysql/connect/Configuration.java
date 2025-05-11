@@ -26,27 +26,26 @@ public interface Configuration {
 	
 	String CW_DEBEZIUM_SCHEMA_HISTORY_METRICS_EXCLUDE = "cloudwatch.debezium.schema.history.metrics.exclude";
 
-	   // Default metrics sets
+	// Default metrics sets
     public static final Set<String> CW_DEBEZIUM_DEFAULT_STREAMING_METRICS = 
 	new HashSet<>(Arrays.asList(
             "NumberOfCommittedTransactions",
-            "MilliSecondsBehindSource",
-            "NumberOfDisconnects"
+            "MilliSecondsBehindSource"
     ));
 
-    public static final Set<String> CW_DEBEZIUM_DEFAULT_SNAPSHOT_METRICS = new HashSet<>(Arrays.asList(
+    public static final Set<String> CW_DEBEZIUM_DEFAULT_SNAPSHOT_METRICS = 
+	new HashSet<>(Arrays.asList(
             "TotalTableCount",
-            "RemainingTableCount",
-            "NumberOfRowsScanned"
+            "RemainingTableCount"
     ));
 
-    public static final Set<String> CW_DEBEZIUM_DEFAULT_SCHEMA_HISTORY_METRICS = new HashSet<>(Arrays.asList(
+    public static final Set<String> CW_DEBEZIUM_DEFAULT_SCHEMA_HISTORY_METRICS =
+	new HashSet<>(Arrays.asList(
             "Status",
-            "NumberOfEventsLogged",
-            "LastDatabaseSchemaChange"
+            "LastAppliedChange"
     ));
 
-	String DEFAULT_CW_NAMESPACE = "MSK_Connect";
+	String DEFAULT_CW_NAMESPACE = "Custom_MSK_plugin";
 	
 	int DEFAULT_JMX_PORT = 1098;
 	
