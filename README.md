@@ -25,7 +25,8 @@ The Debezium MySQL connector provides three types of metrics in addition to the 
   2.	**Streaming metrics** provide information about connector operation when the connector is reading the binlog.
   3.	**Schema history** metrics provide information about the status of the connector’s schema history.
 
-In this code sample, as an example we showcase how to export JMX metric **MilliSecondsBehindDataSource** streaming metric emitted by the Debezium MySQL Connector plugin and publish them as custom metrics to Amazon CloudWatch. This is achieved by creating a custom code wrapper around the Debezium MySQL Connector Plugin. The **MilliSecondsBehindDataSource** metric indicates the number of milliseconds between the timestamp of the last change event and the time when the connector processes it, accounting for any clock differences between the database server and the connector's host machine.
+In this code sample, as an example we showcase how to export variety of JMX metrics in a configurable way using connector configurations. The relevant metrics are emitted by the Debezium MySQL Connector plugin and published them as custom metrics to Amazon CloudWatch. This is achieved by creating a custom code wrapper around the Debezium MySQL Connector Plugin. e.g. The **MilliSecondsBehindDataSource** streaming metric indicates the number of milliseconds between the timestamp of the last change event and the time when the connector processes it, accounting for any clock differences between the database server and the connector's host machine.
+
 
 ### Architecture
 
@@ -48,22 +49,52 @@ Creates a new Maven project with dependencies on:
 2.	**Kafka Connect API**  for configuration and 
 3.	**CloudWatch AWS SDK** to push the metrics to Amazon CloudWatch
  
-**DebeziumMySqlMetricsConnector**: Integrates with the Debezium MySQL Connector by extending MySqlConnector class. This gets you the access to the connector's entry point to execute custom code.This class overrides the start method to get the configuration details, creates a JMX Registry and starts the JMX server. It then schedules the execution of the JMX metrics exporter at regular intervals 
+**DebeziumMySqlMetricsConnector**: This is a custom wrapper class that integrates with the Debezium MySQL Connector by extending MySqlConnector class. This gets you the access to the connector's entry point to execute custom code.This class overrides the start method to get the configuration details, creates a JMX Registry and starts the JMX server. It then schedules the execution of the JMX metrics exporter at regular intervals 
 
 **JMXMetricsExporter:** A custom class for connecting to the JMX Server, querying JMX metric, and converting it into a suitable format for exporting to CloudWatch. It also implements the logic for pushing the JMX metrics to Amazon CloudWatch using the CloudWatch PutMetricData API in AWS SDK for Java.
+
+The JMXMetricsExporter provides comprehensive functionality for handling different types of Debezium metrics:
+
+1. **Metric Types Support:**
+   - Streaming metrics: Captures real-time binlog reading metrics
+   - Snapshot metrics: Monitors database snapshot operations
+   - Schema history metrics: Tracks schema change history status
+
+2. **Flexible Metric Filtering:**
+   - Supports include/exclude patterns for each JMX metric type using relevant connector configuration keys
+   - Uses default metric sets when no filters are specified
+   - Allows fine-grained control over which metrics to collect without rebuilding the plugin
+
+3. **CloudWatch Integration:**
+   - Publishes Cloudwatch metrics with "DBServerName" and "type" of metrics as dimension for identification
+   - Supports custom namespace configuration
+   - Implements automatic metric collection and publishing at configured intervals
+   - Handles JMX connection management and metric extraction
+   - Provides robust error handling and logging
 
 ### Configuration properties
 This github project include some extra configuration properties that can be added to your connector configuration
 
 **connect.jmx.port** This is local JMX port
+
 **cloudwatch.namespace.name** AWS CloudWatch metrics custom namespace name to send your metrics 
+
 **cloudwatch.region** the AWS CloudWatch region
-**cloudwatch.metrics.include** A comma-separated list of regex patterns that match the custom metrics to be sent to CloudWatch. If left empty, the plugin will send all metrics defined in the project.
-**cloudwatch.metrics.exclude** A comma-separated list of regex patterns used to exclude specific custom CloudWatch metrics from being sent. If left empty, the plugin will send all metrics defined in the project, or all metrics that match the cloudwatch.metrics.include list, whichever is applicable.
+
+**cloudwatch.debezium.streaming.metrics.include** A comma-separated list of streaming metric type that must be exported to CloudWatch as custom metrics. If left empty or skipped the property in the connector configuration, the plugin will send the default metrics defined in the project. ["NumberOfCommittedTransactions","MilliSecondsBehindSource"]
+A non-empty list of property configuration takes precedence and overrides the default metrics configured for that metric type. 
+
+**cloudwatch.debezium.streaming.metrics.exclude** Specify a comma-separated list of streaming metric types to exclude from being sent to CloudWatch as custom metrics. If this property is left blank or omitted, the plugin sends the project’s default metrics. When provided, all streaming metrics except those listed are published to CloudWatch. This setting also works in conjunction with the cloudwatch.debezium.streaming.metrics.include property, ensuring that excluded metrics are not sent even if they appear in the include list.
+
+Similar include & exclude property behaviour for snapshot metrics **cloudwatch.debezium.snapshot.metrics.include** & 
+**cloudwatch.debezium.snapshot.metrics.exclude**
+
+Include & exclude propoerty for schemahistory metrics type - 
+**cloudwatch.debezium.schema.history.metrics.include** & **cloudwatch.debezium.schema.history.metrics.exclude**
 
 
 #### Packaging and deploying the custom plugin
-You can either build this project locally and package the Maven project as a jar and include it in the debezium-connector-mysql-2.7.3.Final-plugin. Then package the updated  debezium-connector-mysql-2.7.3.Final-plugin as a zip file and use it as a custom plugin in MSK Connect. Alternatively, you can use the  custom-debezium-mysql-connector-plugin.zip attached as part of this github repository.
+You can either build this project locally and package the Maven project as a jar and include it in the debezium-connector-mysql-2.7.3.Final-plugin. Then package the updated debezium-connector-mysql-2.7.3.Final-plugin as a zip file and use it as a custom plugin in MSK Connect. Alternatively, you can use the  debezium-connector-mysql-2.7.3.zip attached as part of this github repository available under plugin/(2.7) folder.
 
 #### Create a Connector with the custom plugin
 To try this on your AWS account, you can refer to the [Getting Started](https://catalog.us-east-1.prod.workshops.aws/workshops/24d19e6d-0c60-4732-8861-343f20ef2b7f/en-US) lab in the MSK Connect workshop and follow the instructions below to create the connector:
@@ -127,7 +158,12 @@ schema.history.internal.producer.security.protocol=SASL_SSL
 connect.jmx.port=7098
 cloudwatch.namespace.name=MSK_Connect
 cloudwatch.region=<--Your CloudWatch Region-->
-cloudwatch.metrics.include=MilliSecondsBehindDataSource
+cloudwatch.debezium.streaming.metrics.include=metric1, metric2
+cloudwatch.debezium.streaming.metrics.exclude=metric2
+cloudwatch.debezium.snapshot.metrics.include=metric3, metric4
+cloudwatch.debezium.snapshot.metrics.exclude=metric4
+cloudwatch.debezium.schema.history.metrics.include=metric5, metric6
+cloudwatch.debezium.schema.history.metrics.exclude=metric6
 ```
 
 Replace the <--Your Aurora MySQL database endpoint-->, <--Your Database Password-->, <--Your MSK Bootstrap Server Address-->, <--Your CloudWatch Region--> with the corresponding details from your account.
