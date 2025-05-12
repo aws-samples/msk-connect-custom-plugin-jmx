@@ -45,7 +45,7 @@ public interface Configuration {
             "LastAppliedChange"
     ));
 
-	String DEFAULT_CW_NAMESPACE = "Custom_MSK_plugin";
+	String DEFAULT_CW_NAMESPACE = "MSK_Connect";
 	
 	int DEFAULT_JMX_PORT = 1098;
 	
@@ -60,6 +60,4 @@ public interface Configuration {
 	String SNAPSHOT_MBEAN_OBJECT_NAME_TEMPLATE = "debezium.mysql:type=connector-metrics,context=snapshot,server=%s";
 
 	String SCHEMA_HISTORY_MBEAN_OBJECT_NAME_TEMPLATE = "debezium.mysql:type=connector-metrics,context=schema-history,server=%s";
-
-
 }

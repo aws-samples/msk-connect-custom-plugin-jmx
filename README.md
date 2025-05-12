@@ -158,12 +158,12 @@ schema.history.internal.producer.security.protocol=SASL_SSL
 connect.jmx.port=7098
 cloudwatch.namespace.name=MSK_Connect
 cloudwatch.region=<--Your CloudWatch Region-->
-cloudwatch.debezium.streaming.metrics.include=metric1, metric2
-cloudwatch.debezium.streaming.metrics.exclude=metric2
-cloudwatch.debezium.snapshot.metrics.include=metric3, metric4
-cloudwatch.debezium.snapshot.metrics.exclude=metric4
-cloudwatch.debezium.schema.history.metrics.include=metric5, metric6
-cloudwatch.debezium.schema.history.metrics.exclude=metric6
+cloudwatch.debezium.streaming.metrics.include=<--comma-separated streaming metric list-->
+cloudwatch.debezium.streaming.metrics.exclude=<--comma-separated streaming metric list-->
+cloudwatch.debezium.snapshot.metrics.include=<--comma-separated snapshot metric list-->
+cloudwatch.debezium.snapshot.metrics.exclude=<--comma-separated snapshot metric list-->
+cloudwatch.debezium.schema.history.metrics.include=<--comma-separated schema history metric list-->
+cloudwatch.debezium.schema.history.metrics.exclude=<--comma-separated schema history metric list-->
 ```
 
 Replace the <--Your Aurora MySQL database endpoint-->, <--Your Database Password-->, <--Your MSK Bootstrap Server Address-->, <--Your CloudWatch Region--> with the corresponding details from your account.

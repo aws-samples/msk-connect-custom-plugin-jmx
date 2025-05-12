@@ -7,6 +7,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -215,31 +216,33 @@ public class JMXMetricsExporter extends TimerTask {
      * Handles streaming, snapshot, and schema history metrics separately.
      */
 	protected void extractAndPublishJMXMetrics(){
+		CloudWatchClient cw = null;
 		try {
 			LOGGER.info("Extracting and publishing JMX metrics");
 			Region region = Region.of(DebeziumMySqlMetricsConnector.getCWRegion());
-			CloudWatchClient cw = CloudWatchClient.builder()
+			cw = CloudWatchClient.builder()
 					.region(region)
 					.build();
 			Dimension dimension = Dimension.builder()
 					.name("DBServerName")
 					.value(DebeziumMySqlMetricsConnector.getDatabaseServerName())
 					.build();
-			
+
 			JMXServiceURL jmxUrl = new JMXServiceURL(String.format(JMX_URL_TEMPLATE,
 					DebeziumMySqlMetricsConnector.getConnectJMXPort()));
-			
-			
+
 			try (JMXConnector jmxConnector = JMXConnectorFactory.connect(jmxUrl, null)) {
 				MBeanServerConnection mbsc = jmxConnector.getMBeanServerConnection();
-				
 				// Extract streaming metrics
 				if (!streamingMetricsSet.isEmpty()) {
 					LOGGER.info("Extracting streaming metrics: {}", streamingMetricsSet);
 					List<MetricDatum> metrics = new ArrayList<>();
-					AttributeList streamingMetricsAttributes = extractMetricsByType(mbsc, "streaming",
+					Map<String, Map<String, Object>> streamingMetricsAttributes = extractMetricsByType(
+							mbsc,
+							"streaming",
 							STREAMING_MBEAN_OBJECT_NAME_TEMPLATE,
-							streamingMetricsSet);
+							streamingMetricsSet
+					);
 					Dimension dimensionType = Dimension.builder()
 							.name("type")
 							.value("streaming")
@@ -247,29 +250,54 @@ public class JMXMetricsExporter extends TimerTask {
 					// Set an Instant object.
 					String time = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
 					Instant instant = Instant.parse(time);
-					for (Attribute attr : streamingMetricsAttributes.asList()) {
-						LOGGER.info("Preparing streaming metric {} to publish to CloudWatch", attr.getName());
-						metrics.add(toMetricDatum(attr.getName(), attr.getValue(), instant, dimension, dimensionType));
+					// Process the metrics
+					for (Map.Entry<String, Map<String, Object>> entry : streamingMetricsAttributes.entrySet()) {
+						String metricName = entry.getKey();
+						Map<String, Object> metricData = entry.getValue();
+						String metricType = (String) metricData.get("type");
+						Object metricValue = metricData.get("value");
+
+						Double dblMetricValue = convertToDouble(metricValue, metricType);
+
+						MetricDatum datum = MetricDatum.builder()
+								.metricName(metricName)
+								.unit(metricName.toLowerCase().contains("milli")
+										? StandardUnit.MILLISECONDS : StandardUnit.NONE)
+								.value(dblMetricValue)
+								.timestamp(instant)
+								.dimensions(dimension, dimensionType)
+								.build();
+
+						metrics.add(datum);
+						LOGGER.info("Prepared metric: {} of type {} with value {}",
+								metricName, metricType, dblMetricValue);
 					}
+
 					if (!metrics.isEmpty()) {
 						PutMetricDataRequest request = PutMetricDataRequest.builder()
 								.namespace(DebeziumMySqlMetricsConnector.getCWNameSpace())
-								.metricData(metrics).build();
+								.metricData(metrics)
+								.build();
 
 						cw.putMetricData(request);
-						LOGGER.info("Successfully pushed {} metrics to CloudWatch", dimensionType);
-					} else {
-						LOGGER.info("No CloudWatch metrics to push for {} type", dimensionType);
+						LOGGER.info("Successfully published streaming metrics to CloudWatch");
+					}
+					else {
+						LOGGER.info("No CloudWatch metrics to push for streaming type");
 					}
 				}
-				
+
 				// Extract snapshot metrics
 				if (!snapshotMetricsSet.isEmpty()) {
 					LOGGER.info("Extracting snapshot metrics: {}", snapshotMetricsSet);
 					List<MetricDatum> metrics = new ArrayList<>();
-					AttributeList snashotMetricsAttributes = extractMetricsByType(mbsc, "snapshot",
+					Map<String, Map<String, Object>> snashotMetricsAttributes = extractMetricsByType(
+							mbsc,
+							"snapshot",
 							SNAPSHOT_MBEAN_OBJECT_NAME_TEMPLATE,
-							snapshotMetricsSet);
+							snapshotMetricsSet
+					);
+					
 					Dimension dimensionType = Dimension.builder()
 							.name("type")
 							.value("snapshot")
@@ -277,29 +305,56 @@ public class JMXMetricsExporter extends TimerTask {
 					// Set an Instant object.
 					String time = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
 					Instant instant = Instant.parse(time);
-					for (Attribute attr : snashotMetricsAttributes.asList()) {
-						LOGGER.info("Preparing snapshot metric {} to publish to CloudWatch", attr.getName());
-						metrics.add(toMetricDatum(attr.getName(), attr.getValue(), instant, dimension, dimensionType));
+					
+					// Process the metrics
+					for (Map.Entry<String, Map<String, Object>> entry : snashotMetricsAttributes.entrySet()) {
+						String metricName = entry.getKey();
+						Map<String, Object> metricData = entry.getValue();
+						String metricType = (String) metricData.get("type");
+						Object metricValue = metricData.get("value");
+
+						Double dblMetricValue = convertToDouble(metricValue, metricType);
+
+						MetricDatum datum = MetricDatum.builder()
+								.metricName(metricName)
+								.unit(metricName.toLowerCase().contains("milli")
+										? StandardUnit.MILLISECONDS : StandardUnit.NONE)
+								.value(dblMetricValue)
+								.timestamp(instant)
+								.dimensions(dimension, dimensionType)
+								.build();
+
+						metrics.add(datum);
+						LOGGER.info("Prepared metric: {} of type {} with value {}",
+								metricName, metricType, dblMetricValue);
 					}
+
 					if (!metrics.isEmpty()) {
 						PutMetricDataRequest request = PutMetricDataRequest.builder()
 								.namespace(DebeziumMySqlMetricsConnector.getCWNameSpace())
-								.metricData(metrics).build();
+								.metricData(metrics)
+								.build();
 
 						cw.putMetricData(request);
-						LOGGER.info("Successfully pushed {} metrics to CloudWatch", dimensionType);
-					} else {
-						LOGGER.info("No CloudWatch metrics to push for {} type", dimensionType);
+						LOGGER.info("Successfully published snapshot metrics to CloudWatch");
 					}
-				}	
+					else {
+						LOGGER.info("No CloudWatch metrics to push for snapshot type");
+					}
+				}
 
 				// Extract schema history metrics
 				if (!schemaHistoryMetricsSet.isEmpty()) {
 					LOGGER.info("Extracting schema history metrics: {}", schemaHistoryMetricsSet);
 					List<MetricDatum> metrics = new ArrayList<>();
-					AttributeList schemaHistoryMetricsAttributes = extractMetricsByType(mbsc, "schema_history",
+					
+					Map<String, Map<String, Object>> schemaHistoryMetricsAttributes = extractMetricsByType(
+							mbsc,
+							"schema_history",
 							SCHEMA_HISTORY_MBEAN_OBJECT_NAME_TEMPLATE,
-							schemaHistoryMetricsSet);
+							schemaHistoryMetricsSet
+					);
+					
 					Dimension dimensionType = Dimension.builder()
 							.name("type")
 							.value("schema_history")
@@ -307,11 +362,48 @@ public class JMXMetricsExporter extends TimerTask {
 					// Set an Instant object.
 					String time = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
 					Instant instant = Instant.parse(time);
-					for (Attribute attr : schemaHistoryMetricsAttributes.asList()) {
-						LOGGER.info("Preparing schema_history metric {} to publish to CloudWatch", attr.getName());
-						metrics.add(toMetricDatum(attr.getName(), attr.getValue(), instant, dimension, dimensionType));
+					
+					// Process the metrics
+					for (Map.Entry<String, Map<String, Object>> entry : schemaHistoryMetricsAttributes.entrySet()) {
+						String metricName = entry.getKey();
+						Map<String, Object> metricData = entry.getValue();
+						String metricType = (String) metricData.get("type");
+						Object metricValue = metricData.get("value");
+
+						Double dblMetricValue = convertToDouble(metricValue, metricType);
+
+						MetricDatum datum = MetricDatum.builder()
+								.metricName(metricName)
+								.unit(metricName.toLowerCase().contains("milli")
+										? StandardUnit.MILLISECONDS : StandardUnit.NONE)
+								.value(dblMetricValue)
+								.timestamp(instant)
+								.dimensions(dimension, dimensionType)
+								.build();
+
+						metrics.add(datum);
+						LOGGER.info("Prepared metric: {} of type {} with value {}",
+								metricName, metricType, dblMetricValue);
+					}
+
+					if (!metrics.isEmpty()) {
+						PutMetricDataRequest request = PutMetricDataRequest.builder()
+								.namespace(DebeziumMySqlMetricsConnector.getCWNameSpace())
+								.metricData(metrics)
+								.build();
+
+						cw.putMetricData(request);
+						LOGGER.info("Successfully published schema history metrics to CloudWatch");
+					}
+					else {
+						LOGGER.info("No CloudWatch metrics to push for schema history type");
 					}
 					
+					/* for (Attribute attr : schemaHistoryMetricsAttributes.asList()) {
+						LOGGER.info("Preparing schema_history metric {} of type {} to publish to CloudWatch", attr.getName());
+						metrics.add(toMetricDatum(attr.getName(), attr.getValue(), instant, dimension, dimensionType));
+					}
+
 					if (!metrics.isEmpty()) {
 						PutMetricDataRequest request = PutMetricDataRequest.builder()
 								.namespace(DebeziumMySqlMetricsConnector.getCWNameSpace())
@@ -321,17 +413,33 @@ public class JMXMetricsExporter extends TimerTask {
 						LOGGER.info("Successfully pushed {} metrics to CloudWatch", dimensionType);
 					} else {
 						LOGGER.info("No CloudWatch metrics to push for {} type", dimensionType);
-					}
+					} */
+				}
+			} catch (IOException ioEx) {
+				LOGGER.error("I/O error during JMX connection or metric extraction", ioEx);
+				// Optionally, notify user or system about the failure
+			} catch (Exception jmxEx) {
+				LOGGER.error("Unexpected error during JMX metric extraction", jmxEx);
+				// Optionally, notify user or system about the failure
+			}
+		} catch (IllegalArgumentException iae) {
+			LOGGER.error("Invalid configuration for CloudWatch region or parameters", iae);
+			// Optionally, notify user or system about the failure
+		} catch (Exception e) {
+			LOGGER.error("Error extracting JMX metrics and publishing to CloudWatch", e);
+			// Optionally, notify user or system about the failure
+		} finally {
+			if (cw != null) {
+				try {
+					cw.close();
+				} catch (Exception closeEx) {
+					LOGGER.warn("Failed to close CloudWatch client", closeEx);
 				}
 			}
-			cw.close();
-		} catch (Exception e) {
-			LOGGER.error("Error extracting JMX metrics and publishing to cloudwatch", e);
 		}
-		
 	}
 
-    /**
+	/**
      * Extracts metrics of a specific type from the JMX MBean server.
      *
      * @param mbsc The MBean server connection
@@ -340,30 +448,85 @@ public class JMXMetricsExporter extends TimerTask {
      * @param metricsSet Set of metric names to extract
      * @return AttributeList Returns list of extracted metric attributes
      */
-	private AttributeList extractMetricsByType(MBeanServerConnection mbsc,
-			String metricType,
-			String mbeanTemplate,
-			Set<String> metricsSet) {
-		AttributeList attributes = null;
+	private Map<String, Map<String, Object>> extractMetricsByType(MBeanServerConnection mbsc,
+		String metricType,
+		String mbeanTemplate,
+		Set<String> metricsSet) {
+		
 		LOGGER.info("Inside extractMetricsByType...Extracting {} metrics", metricType);
+
+		// Using a nested Map: attribute name -> (type, value)
+		Map<String, Map<String, Object>> attributesMetadata = new HashMap<>();
+		LOGGER.info("Extracting {} metrics", metricType);
+
 		try {
 			String objName = String.format(mbeanTemplate,
 					DebeziumMySqlMetricsConnector.getDatabaseServerName());
 			ObjectName mbean = new ObjectName(objName);
 
-			attributes = mbsc.getAttributes(mbean,metricsSet.toArray(new String[0]));
-			LOGGER.info("Extracted {} metrics: {}", metricType, attributes);
-		} catch (MalformedObjectNameException | ReflectionException | InstanceNotFoundException e) {
-			LOGGER.error("Error extracting {} metrics due to JMX-related issue", metricType, e);
-		} catch (IOException e) {
-			LOGGER.error("Error extracting {} metrics due to I/O issue", metricType, e);
+			// Get MBeanInfo for type information
+			Map<String, String> attributeTypes = new HashMap<>();
+
+			// Store attribute types in a map for quick lookup
+			for (MBeanAttributeInfo info : mbsc.getMBeanInfo(mbean).getAttributes()) {
+				attributeTypes.put(info.getName(), info.getType());
+			}
+
+			// Get attribute values
+			AttributeList attributes = mbsc.getAttributes(mbean, metricsSet.toArray(new String[0]));
+
+			// Process each attribute
+			for (Attribute attr : attributes.asList()) {
+				String attrName = attr.getName();
+				Object attrValue = attr.getValue();
+				String attrType = attributeTypes.get(attrName);
+
+				Map<String, Object> metadata = new HashMap<>();
+				metadata.put("type", attrType);
+				metadata.put("value", attrValue);
+
+				attributesMetadata.put(attrName, metadata);
+
+				LOGGER.debug("Processed attribute - Name: {}, Type: {}, Value: {}",
+						attrName, attrType, attrValue);
+			}
+
 		} catch (Exception e) {
-			LOGGER.error("Error extracting {} metrics due to unknown issue", metricType, e);
+			LOGGER.error("Error extracting " + metricType + " metrics", e);
 		}
-			
-		return attributes;						
+	return attributesMetadata;
 	}
 
+
+	private Double convertToDouble(Object value, String type) {
+    if (value == null) return 0.0;
+    
+    try {
+        switch (type) {
+            case "java.lang.Long":
+            case "java.lang.Integer":
+            case "java.lang.Double":
+            case "java.lang.Float":
+                return ((Number) value).doubleValue();
+            case "java.lang.Boolean":
+                return ((Boolean) value) ? 1.0 : 0.0;
+            case "[Ljava.lang.String;":
+                String[] arrayValue = (String[]) value;
+                return (double) Arrays.stream(arrayValue)
+                        .filter(s -> s != null && !s.trim().isEmpty())
+                        .count();
+            case "java.util.Map":
+                @SuppressWarnings("unchecked")
+                Map<String, ?> mapValue = (Map<String, ?>) value;
+                return (double) mapValue.size();
+            default:
+                return Double.parseDouble(value.toString());
+        }
+    } catch (Exception e) {
+        LOGGER.error("Error converting value {} of type {}", value, type, e);
+        return 0.0;
+    }
+}
 	   /**
      * Converts a JMX metric to a CloudWatch MetricDatum. Handles different
      * types of metric values (Double, Long, Integer, Boolean, String[],
@@ -460,3 +623,62 @@ public class JMXMetricsExporter extends TimerTask {
                 .build();
     }
 }
+
+
+/*     
+	private AttributeList extractMetricsByType(MBeanServerConnection mbsc,
+			String metricType,
+			String mbeanTemplate,
+			Set<String> metricsSet) {
+		AttributeList attributes = null;
+		LOGGER.info("Inside extractMetricsByType...Extracting {} metrics", metricType);
+		try {
+			String objName = String.format(mbeanTemplate,
+					DebeziumMySqlMetricsConnector.getDatabaseServerName());
+			ObjectName mbean = new ObjectName(objName);
+
+			// Get MBeanInfo to access attribute type information
+			//MBeanInfo mbeanInfo = mbsc.getMBeanInfo(mbean);
+			MBeanAttributeInfo[] attributeInfos = mbsc.getMBeanInfo(mbean).getAttributes();
+
+			// Create a map to store attribute info by name for quick lookup
+			Map<String, MBeanAttributeInfo> attributeInfoMap = new HashMap<>();
+			for (MBeanAttributeInfo info : attributeInfos) {
+				attributeInfoMap.put(info.getName(), info);
+			}
+			
+			// Get the attribute values
+			attributes = mbsc.getAttributes(mbean, metricsSet.toArray(new String[0]));
+			LOGGER.info("Extracted {} metrics: {}", metricType, attributes);
+			// Process attributes with their types
+			for (Attribute attribute : attributes.asList()) {
+				String attributeName = attribute.getName();
+				Object attributeValue = attribute.getValue();
+				MBeanAttributeInfo attributeInfo = attributeInfoMap.get(attributeName);
+
+				if (attributeInfo != null) {
+					String attributeType = attributeInfo.getType(); // Gets the fully qualified class name
+					String simpleType = attributeType.substring(attributeType.lastIndexOf('.') + 1); // Gets just the class name
+					LOGGER.info("Attribute: {}, Type: {}, Value: {}",
+                                            attributeName,
+                                            simpleType,
+                                            attributeValue);
+
+				}
+			}
+			//String attributeType = attributeInfoMap.get(attributeName).getType(); // Gets the fully qualified class name
+
+
+		} catch (MalformedObjectNameException | ReflectionException | InstanceNotFoundException e) {
+			LOGGER.error("Error extracting " + metricType + " metrics due to JMX-related issue", e);
+		} catch (IOException e) {
+			LOGGER.error("Error extracting " + metricType + " metrics due to I/O issue", e);
+			// Optionally, handle the IOException specifically, e.g., retry or cleanup
+		} catch (Exception e) {
+			LOGGER.error("Error extracting " + metricType + " metrics due to unknown issue", e);
+			// Optionally, handle unexpected exceptions, e.g., alert or fallback
+		}
+			
+		return attributes;						
+	}
+ */
