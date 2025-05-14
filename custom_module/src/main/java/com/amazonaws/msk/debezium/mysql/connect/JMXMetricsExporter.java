@@ -27,6 +27,7 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
+import org.apache.commons.text.StringEscapeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +52,7 @@ import software.amazon.awssdk.utils.StringUtils;
  * connector to Amazon CloudWatch. This class handles streaming, snapshot, and
  * schema history metrics.
  */
+// amazonq-ignore-next-line
 public class JMXMetricsExporter extends TimerTask {
 	
 	private static final Logger LOGGER = LoggerFactory.getLogger(JMXMetricsExporter.class);
@@ -122,6 +124,7 @@ public class JMXMetricsExporter extends TimerTask {
      * @param defaultMetrics Set of default metrics to use when no include/exclude specified
      * @return Set<String> Returns a set of metric names to be collected
      */
+    // amazonq-ignore-next-line
     private Set<String> populateMetricsSet(
 		String metricType, 
 		String mbeanTemplate,
@@ -139,12 +142,30 @@ public class JMXMetricsExporter extends TimerTask {
                 LOGGER.info("Setting default {} metrics", metricType);
                 metricsSet = new HashSet<>(defaultMetrics);
             } else if (includeMetrics && excludeMetrics) {
-                LOGGER.info("Both include and exclude metrics are set for {}", metricType);
-                metricsSet.addAll(getMetricsAsList(includeMetricsStr));
-                metricsSet.removeAll(getMetricsAsList(excludeMetricsStr));
+				//check the value of includemetrics and check if it is equal to ALL then call getAllAvailableMetrics
+				LOGGER.info("Both include and exclude metrics are set for {}", metricType);
+				//LOGGER.info("includeMetricsStr is {} & excludeMetricsStr is {}" , includeMetricsStr, excludeMetricsStr);
+				if (includeMetricsStr.equalsIgnoreCase("ALL")) {
+					LOGGER.info("Include metrics is set to ALL for {}", metricType);
+					metricsSet = getAllAvailableMetrics(metricType, mbeanTemplate);
+					metricsSet.removeAll(getMetricsAsList(excludeMetricsStr));
+				}
+                else {
+					LOGGER.info("parsing through the specified metric list for {}", metricType);
+					metricsSet.addAll(getMetricsAsList(includeMetricsStr));
+                	metricsSet.removeAll(getMetricsAsList(excludeMetricsStr));
+				}
             } else if (includeMetrics) {
                 LOGGER.info("Include metrics is set for {}", metricType);
-                metricsSet.addAll(getMetricsAsList(includeMetricsStr));
+				//LOGGER.info("includeMetricsStr is {} & excludeMetricsStr is {}" , includeMetricsStr, excludeMetricsStr);
+				if (includeMetricsStr.equalsIgnoreCase("ALL")) {
+					LOGGER.info("Include metrics is set to ALL for {}", metricType);
+					Set<String> allMetricsSet = getAllAvailableMetrics(metricType, mbeanTemplate);
+                	metricsSet.addAll(allMetricsSet);
+				}
+				else {
+                	metricsSet.addAll(getMetricsAsList(includeMetricsStr));
+				}
             } else if (excludeMetrics) {
                 LOGGER.info("Exclude metrics is set for {}", metricType);
                 Set<String> allMetricsSet = getAllAvailableMetrics(metricType, mbeanTemplate);
@@ -205,7 +226,7 @@ public class JMXMetricsExporter extends TimerTask {
 				}
 			}
 		catch (Exception e) {
-			LOGGER.error("Error connecting to JMX server", e);
+			LOGGER.error("Error connecting to JMX server: {}", e.getMessage(), e);
 		}
 		LOGGER.info("All available {} metrics: {}", metricType, allMetricsSet);
         return allMetricsSet;	
@@ -233,6 +254,9 @@ public class JMXMetricsExporter extends TimerTask {
 
 			try (JMXConnector jmxConnector = JMXConnectorFactory.connect(jmxUrl, null)) {
 				MBeanServerConnection mbsc = jmxConnector.getMBeanServerConnection();
+				// Set an Instant object.
+				String time = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
+				Instant instant = Instant.parse(time);
 				// Extract streaming metrics
 				if (!streamingMetricsSet.isEmpty()) {
 					LOGGER.info("Extracting streaming metrics: {}", streamingMetricsSet);
@@ -247,9 +271,6 @@ public class JMXMetricsExporter extends TimerTask {
 							.name("type")
 							.value("streaming")
 							.build();
-					// Set an Instant object.
-					String time = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
-					Instant instant = Instant.parse(time);
 					// Process the metrics
 					for (Map.Entry<String, Map<String, Object>> entry : streamingMetricsAttributes.entrySet()) {
 						String metricName = entry.getKey();
@@ -302,9 +323,7 @@ public class JMXMetricsExporter extends TimerTask {
 							.name("type")
 							.value("snapshot")
 							.build();
-					// Set an Instant object.
-					String time = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
-					Instant instant = Instant.parse(time);
+					
 					
 					// Process the metrics
 					for (Map.Entry<String, Map<String, Object>> entry : snashotMetricsAttributes.entrySet()) {
@@ -317,6 +336,7 @@ public class JMXMetricsExporter extends TimerTask {
 
 						MetricDatum datum = MetricDatum.builder()
 								.metricName(metricName)
+        // amazonq-ignore-next-line
 								.unit(metricName.toLowerCase().contains("milli")
 										? StandardUnit.MILLISECONDS : StandardUnit.NONE)
 								.value(dblMetricValue)
@@ -359,9 +379,6 @@ public class JMXMetricsExporter extends TimerTask {
 							.name("type")
 							.value("schema_history")
 							.build();
-					// Set an Instant object.
-					String time = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
-					Instant instant = Instant.parse(time);
 					
 					// Process the metrics
 					for (Map.Entry<String, Map<String, Object>> entry : schemaHistoryMetricsAttributes.entrySet()) {
@@ -398,22 +415,6 @@ public class JMXMetricsExporter extends TimerTask {
 					else {
 						LOGGER.info("No CloudWatch metrics to push for schema history type");
 					}
-					
-					/* for (Attribute attr : schemaHistoryMetricsAttributes.asList()) {
-						LOGGER.info("Preparing schema_history metric {} of type {} to publish to CloudWatch", attr.getName());
-						metrics.add(toMetricDatum(attr.getName(), attr.getValue(), instant, dimension, dimensionType));
-					}
-
-					if (!metrics.isEmpty()) {
-						PutMetricDataRequest request = PutMetricDataRequest.builder()
-								.namespace(DebeziumMySqlMetricsConnector.getCWNameSpace())
-								.metricData(metrics).build();
-
-						cw.putMetricData(request);
-						LOGGER.info("Successfully pushed {} metrics to CloudWatch", dimensionType);
-					} else {
-						LOGGER.info("No CloudWatch metrics to push for {} type", dimensionType);
-					} */
 				}
 			} catch (IOException ioEx) {
 				LOGGER.error("I/O error during JMX connection or metric extraction", ioEx);
@@ -453,11 +454,10 @@ public class JMXMetricsExporter extends TimerTask {
 		String mbeanTemplate,
 		Set<String> metricsSet) {
 		
-		LOGGER.info("Inside extractMetricsByType...Extracting {} metrics", metricType);
+		LOGGER.info("Inside extractMetricsByType.Extracting {} metrics", metricType);
 
 		// Using a nested Map: attribute name -> (type, value)
 		Map<String, Map<String, Object>> attributesMetadata = new HashMap<>();
-		LOGGER.info("Extracting {} metrics", metricType);
 
 		try {
 			String objName = String.format(mbeanTemplate,
@@ -482,7 +482,7 @@ public class JMXMetricsExporter extends TimerTask {
 				String attrType = attributeTypes.get(attrName);
 
 				Map<String, Object> metadata = new HashMap<>();
-				metadata.put("type", attrType);
+				metadata.put("type", StringEscapeUtils.escapeHtml4(attrType)); // import org.apache.commons.text.StringEscapeUtils
 				metadata.put("value", attrValue);
 
 				attributesMetadata.put(attrName, metadata);
@@ -492,193 +492,40 @@ public class JMXMetricsExporter extends TimerTask {
 			}
 
 		} catch (Exception e) {
-			LOGGER.error("Error extracting " + metricType + " metrics", e);
+			LOGGER.error("Error extracting {} metrics", metricType, e);
 		}
 	return attributesMetadata;
 	}
 
 
 	private Double convertToDouble(Object value, String type) {
-    if (value == null) return 0.0;
-    
-    try {
-        switch (type) {
-            case "java.lang.Long":
-            case "java.lang.Integer":
-            case "java.lang.Double":
-            case "java.lang.Float":
-                return ((Number) value).doubleValue();
-            case "java.lang.Boolean":
-                return ((Boolean) value) ? 1.0 : 0.0;
-            case "[Ljava.lang.String;":
-                String[] arrayValue = (String[]) value;
-                return (double) Arrays.stream(arrayValue)
-                        .filter(s -> s != null && !s.trim().isEmpty())
-                        .count();
-            case "java.util.Map":
-                @SuppressWarnings("unchecked")
-                Map<String, ?> mapValue = (Map<String, ?>) value;
-                return (double) mapValue.size();
-            default:
-                return Double.parseDouble(value.toString());
-        }
-    } catch (Exception e) {
-        LOGGER.error("Error converting value {} of type {}", value, type, e);
-        return 0.0;
-    }
-}
-	   /**
-     * Converts a JMX metric to a CloudWatch MetricDatum. Handles different
-     * types of metric values (Double, Long, Integer, Boolean, String[],
-     * Map<String, String>) and converts them appropriately.
-     *
-     * @param metricName Name of the metric
-     * @param metricDescription Description of the metric
-     * @param metricValue The metric value (can be Double, Long, Integer,
-     * Boolean, String[], Map<String, String>)
-     * @param instant Timestamp for the metric
-     * @param dimension Primary dimension for the metric
-     * @param dimensionType Type dimension for the metric
-     * @return MetricDatum Returns a CloudWatch metric datum object
-     */
-    private MetricDatum toMetricDatum(String metricName, Object metricValue,
-            Instant instant, Dimension dimension, Dimension dimensionType) {
-
-        LOGGER.debug("Converting metric - Name: {}, Description: {}, Value: {}, Type: {}",
-                metricName, metricValue,
-                (metricValue != null ? metricValue.getClass().getSimpleName() : "null"));
-
-        // Determine the unit based on metric name
-        StandardUnit unit = metricName.toLowerCase().contains("milli")
-                ? StandardUnit.MILLISECONDS : StandardUnit.NONE;
-
-        // Convert metric value to double
-        Double dblMetricValue = 0.0;
-
-        try {
-            if (metricValue != null) {
-                if (metricValue instanceof Number) {
-                    dblMetricValue = ((Number) metricValue).doubleValue();
-                } else if (metricValue instanceof Boolean) {
-                    dblMetricValue = ((Boolean) metricValue) ? 1.0 : 0.0;
-                } else if (metricValue instanceof String[]) {
-                    // Handle String array - count the number of non-null elements
-                    String[] arrayValue = (String[]) metricValue;
-                    dblMetricValue = (double) Arrays.stream(arrayValue)
-                            .filter(s -> s != null && !s.trim().isEmpty())
-                            .count();
-                    LOGGER.debug("String array converted to count: {}", dblMetricValue);
-                } else if (metricValue instanceof Map) {
-                    // Handle Map - count the number of entries
-                    @SuppressWarnings("unchecked")
-                    Map<String, String> mapValue = (Map<String, String>) metricValue;
-                    dblMetricValue = (double) mapValue.size();
-                    LOGGER.debug("Map converted to size: {}", dblMetricValue);
-                } else {
-                    // Try parsing as string as last resort
-                    String strValue = String.valueOf(metricValue).trim();
-                    if (!strValue.isEmpty()) {
-                        // Check if the string represents an array or map format
-                        if (strValue.startsWith("[") && strValue.endsWith("]")) {
-                            // Handle string representation of array
-                            String[] elements = strValue.substring(1, strValue.length() - 1)
-                                    .split(",");
-                            dblMetricValue = (double) Arrays.stream(elements)
-                                    .filter(s -> s != null && !s.trim().isEmpty())
-                                    .count();
-                            LOGGER.debug("Array string converted to count: {}", dblMetricValue);
-                        } else if (strValue.startsWith("{") && strValue.endsWith("}")) {
-                            // Handle string representation of map
-                            String[] pairs = strValue.substring(1, strValue.length() - 1)
-                                    .split(",");
-                            dblMetricValue = (double) Arrays.stream(pairs)
-                                    .filter(s -> s != null && !s.trim().isEmpty())
-                                    .count();
-                            LOGGER.debug("Map string converted to count: {}", dblMetricValue);
-                        } else {
-                            dblMetricValue = Double.parseDouble(strValue);
-                        }
-                    }
-                }
-            }
-        } catch (NumberFormatException e) {
-            LOGGER.warn("Failed to convert metric value '{}' for metric '{}'. Using default value 0.0",
-                    metricValue, metricName, e);
-        } catch (ClassCastException e) {
-            LOGGER.warn("Invalid type casting for metric '{}'. Using default value 0.0",
-                    metricName, e);
-        } catch (Exception e) {
-            LOGGER.warn("Unexpected error converting metric '{}'. Using default value 0.0",
-                    metricName, e);
-        }
-
-        LOGGER.debug("Final converted metric value: {}", dblMetricValue);
-
-        return MetricDatum.builder()
-                .metricName(metricName)
-                .unit(unit)
-                .value(dblMetricValue)
-                .timestamp(instant)
-                .dimensions(dimension, dimensionType)
-                .build();
-    }
-}
-
-
-/*     
-	private AttributeList extractMetricsByType(MBeanServerConnection mbsc,
-			String metricType,
-			String mbeanTemplate,
-			Set<String> metricsSet) {
-		AttributeList attributes = null;
-		LOGGER.info("Inside extractMetricsByType...Extracting {} metrics", metricType);
+		if (value == null) return 0.0;
 		try {
-			String objName = String.format(mbeanTemplate,
-					DebeziumMySqlMetricsConnector.getDatabaseServerName());
-			ObjectName mbean = new ObjectName(objName);
-
-			// Get MBeanInfo to access attribute type information
-			//MBeanInfo mbeanInfo = mbsc.getMBeanInfo(mbean);
-			MBeanAttributeInfo[] attributeInfos = mbsc.getMBeanInfo(mbean).getAttributes();
-
-			// Create a map to store attribute info by name for quick lookup
-			Map<String, MBeanAttributeInfo> attributeInfoMap = new HashMap<>();
-			for (MBeanAttributeInfo info : attributeInfos) {
-				attributeInfoMap.put(info.getName(), info);
+			switch (type) {
+				case "java.lang.Long":
+				case "java.lang.Integer":
+				case "java.lang.Double":
+				case "java.lang.Float":
+					return ((Number) value).doubleValue();
+				case "java.lang.Boolean":
+					return ((Boolean) value) ? 1.0 : 0.0;
+				case "[Ljava.lang.String;":
+					String[] arrayValue = (String[]) value;
+					return (double) Arrays.stream(arrayValue)
+							.filter(s -> s != null && !s.trim().isEmpty())
+							.count();
+				case "java.util.Map":
+					@SuppressWarnings("unchecked")
+					Map<String, ?> mapValue = (Map<String, ?>) value;
+					return (double) mapValue.size();
+				default:
+					return Double.parseDouble(value.toString());
 			}
-			
-			// Get the attribute values
-			attributes = mbsc.getAttributes(mbean, metricsSet.toArray(new String[0]));
-			LOGGER.info("Extracted {} metrics: {}", metricType, attributes);
-			// Process attributes with their types
-			for (Attribute attribute : attributes.asList()) {
-				String attributeName = attribute.getName();
-				Object attributeValue = attribute.getValue();
-				MBeanAttributeInfo attributeInfo = attributeInfoMap.get(attributeName);
-
-				if (attributeInfo != null) {
-					String attributeType = attributeInfo.getType(); // Gets the fully qualified class name
-					String simpleType = attributeType.substring(attributeType.lastIndexOf('.') + 1); // Gets just the class name
-					LOGGER.info("Attribute: {}, Type: {}, Value: {}",
-                                            attributeName,
-                                            simpleType,
-                                            attributeValue);
-
-				}
-			}
-			//String attributeType = attributeInfoMap.get(attributeName).getType(); // Gets the fully qualified class name
-
-
-		} catch (MalformedObjectNameException | ReflectionException | InstanceNotFoundException e) {
-			LOGGER.error("Error extracting " + metricType + " metrics due to JMX-related issue", e);
-		} catch (IOException e) {
-			LOGGER.error("Error extracting " + metricType + " metrics due to I/O issue", e);
-			// Optionally, handle the IOException specifically, e.g., retry or cleanup
 		} catch (Exception e) {
-			LOGGER.error("Error extracting " + metricType + " metrics due to unknown issue", e);
-			// Optionally, handle unexpected exceptions, e.g., alert or fallback
+			LOGGER.error("Error converting value {} of type {}", value, type, e);
+			return 0.0;
 		}
-			
-		return attributes;						
 	}
- */
+
+}
+

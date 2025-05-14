@@ -84,12 +84,21 @@ This github project include some extra configuration properties that can be adde
 **cloudwatch.debezium.streaming.metrics.include** A comma-separated list of streaming metric type that must be exported to CloudWatch as custom metrics. If left empty or skipped the property in the connector configuration, the plugin will send the default metrics defined in the project. ["NumberOfCommittedTransactions","MilliSecondsBehindSource"]
 A non-empty list of property configuration takes precedence and overrides the default metrics configured for that metric type. 
 
+Example configuration: includes 4 streaming metrics and excludes one, defaults snapshot metric values are exported as no custom configuration provided and only exclude property for schema history metrics is provided that exports all metrics except [MilliSecondsSinceLastAppliedChange].
+
+![connector-property-example](mixed-property-config.png)
+
+
+To emit *all* JMX attrubutes of a certain metric, mention the cofiguration property value as "ALL" (case insentive) 
+![Include-all-image](Debezium-metric-include-all.png)
+
 **cloudwatch.debezium.streaming.metrics.exclude** Specify a comma-separated list of streaming metric types to exclude from being sent to CloudWatch as custom metrics. If this property is left blank or omitted, the plugin sends the project’s default metrics. When provided, all streaming metrics except those listed are published to CloudWatch. This setting also works in conjunction with the cloudwatch.debezium.streaming.metrics.include property, ensuring that excluded metrics are not sent even if they appear in the include list.
 
-Similar include & exclude property behaviour for snapshot metrics **cloudwatch.debezium.snapshot.metrics.include** & 
+Similarly include & exclude properties for snapshot metrics type are -
+**cloudwatch.debezium.snapshot.metrics.include** & 
 **cloudwatch.debezium.snapshot.metrics.exclude**
 
-Include & exclude propoerty for schemahistory metrics type - 
+Include & exclude properties for schemahistory metrics type - 
 **cloudwatch.debezium.schema.history.metrics.include** & **cloudwatch.debezium.schema.history.metrics.exclude**
 
 
@@ -112,6 +121,26 @@ Enter custom-debezium-mysql-connector-plugin for the plugin name. Optionally, en
 
 After a few seconds you should see the plugin is created and the status is Active.
 Customize the worker configuration for the connector by following the instructions in the [Customise worker configuration](https://catalog.us-east-1.prod.workshops.aws/workshops/24d19e6d-0c60-4732-8861-343f20ef2b7f/en-US/sourceconnectors/source-connector-setup#customise-worker-configuration) lab. 
+
+In order for the connector to export custom metrics to cloudwatch, we need to attach cloudwatch putmetricdata permission to [mskconnectlab-AuroraConnectorIAMRole-XXXXX] role. Find this role inder IAM console and create a new inline policy using below.
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cloudwatch:PutMetricData"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+```
+![IAM policy](<Screenshot 2025-05-14 at 12.17.07 PM.png>)
+
+
 #### Create MSK Connector
 
 From the MSK section choose Connectors, then click **Create connector**. Choose custom-debezium-mysql-connector-plugin from the list of Custom Plugins, Click **Next**.
@@ -168,7 +197,9 @@ cloudwatch.debezium.schema.history.metrics.exclude=<--comma-separated schema his
 
 Replace the <--Your Aurora MySQL database endpoint-->, <--Your Database Password-->, <--Your MSK Bootstrap Server Address-->, <--Your CloudWatch Region--> with the corresponding details from your account.
 
-![image](https://github.com/aws-samples/msk-connect-custom-plugin-jmx/assets/65406323/55486fe8-30fc-41af-bb80-d15f27db2d95)
+***NOTE***: Debezium metrics properties are *optional* to mention in the connector configuration. You can mix and match the propeties and metric list based on your business requirement.
+
+![sample configuration](<Screenshot 2025-05-14 at 12.26.17 PM.png>)
 
 Follow the remaining instructions from the [Create MSK Connector lab](https://catalog.us-east-1.prod.workshops.aws/workshops/24d19e6d-0c60-4732-8861-343f20ef2b7f/en-US/sourceconnectors/source-connector-setup#create-msk-connector) and create the connector. Ensure that the connector status changes to **Running**.
 
