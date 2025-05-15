@@ -139,7 +139,8 @@ In order for the connector to export custom metrics to cloudwatch, we need to at
     ]
 }
 ```
-![IAM policy](<Screenshot 2025-05-14 at 12.17.07 PM.png>)
+![Screenshot 2025-05-14 at 12 17 07 PM](https://github.com/user-attachments/assets/4fdb6086-e9a4-4d78-a2da-a6b2651a5f1a)
+
 
 
 #### Create MSK Connector
