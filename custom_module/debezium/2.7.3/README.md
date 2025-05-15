@@ -86,7 +86,8 @@ A non-empty list of property configuration takes precedence and overrides the de
 
 Example configuration: includes 4 streaming metrics and excludes one, defaults snapshot metric values are exported as no custom configuration provided and only exclude property for schema history metrics is provided that exports all metrics except [MilliSecondsSinceLastAppliedChange].
 
-![connector-property-example](mixed-property-config.png)
+![Screenshot 2025-05-14 at 12 26 17 PM](https://github.com/user-attachments/assets/5af9ac63-5363-465f-bad7-9e9c5c9b8f58)
+
 
 
 To emit *all* JMX attrubutes of a certain metric, mention the cofiguration property value as "ALL" (case insentive) 
