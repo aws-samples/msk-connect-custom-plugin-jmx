@@ -92,7 +92,8 @@ Example configuration: includes 4 streaming metrics and excludes one, defaults s
 
 
 To emit *all* JMX attrubutes of a certain metric, mention the cofiguration property value as "ALL" (case insentive) 
-![Include-all-image](Debezium-metric-include-all.png)
+![Debezium-metric-include-all](https://github.com/user-attachments/assets/245bb8e4-9745-4cad-bcef-af735fa47e7d)
+
 
 **cloudwatch.debezium.streaming.metrics.exclude** Specify a comma-separated list of streaming metric types to exclude from being sent to CloudWatch as custom metrics. If this property is left blank or omitted, the plugin sends the project’s default metrics. When provided, all streaming metrics except those listed are published to CloudWatch. This setting also works in conjunction with the cloudwatch.debezium.streaming.metrics.include property, ensuring that excluded metrics are not sent even if they appear in the include list.
 
