@@ -42,14 +42,14 @@ The connectors capture essential debezium JMX metrics like streaming metrics, sn
 - Appropriate IAM permissions for CloudWatch metrics publishing
 
 ### Installation
-1. OptionA : Download Pre-packaged Plugins
-2. OptionB : Rebuild the plugin with a new custom JAR with your custom logic
+1. OptionA : Download pre-packaged plugins
+2. OptionB : Rebuild the plugin with a new JAR with your custom logic
 
-### OptionA: Quick Start
+### OptionA: Quick start
 
-1. Download Pre-packaged Plugins
+1. Download pre-packaged plugins
 
-Download the required connector plugin(s) directly from the releases (available as zip files):
+Download the required connector plugin(s) directly from plugin directory (available as zip files):
 
 ```bash
 # For Debezium 2.7.3
@@ -57,7 +57,7 @@ custom_module/debezium/2.7.3/target/msk-debezium-mysql-metrics-connector-0.0.3-S
 # For Debezium 2.5.2
 custom_module/debezium/2.5.2/target/msk-debezium-mysql-metrics-connector-0.0.1-SNAPSHOT.jar
 ```
-2. Upload them to S3 and configure your MSK connector pointing to the plugin uploaded to S3 with relevant MSK connector configuration properties.
+2. Upload them to S3 and configure your MSK connector pointing to the plugin uploaded to S3 along with relevant MSK connector configuration properties.
 
 ### OptionB: Build your own JAR
 
@@ -81,7 +81,7 @@ cd mongodb/1.10.0
 mvn clean package
 ```
 
-3. Deploy the generated JAR file to your Kafka Connect plugins directory and convert it to zip file.
+3. Prepare a custom plugin (a zip file) by adding the generated JAR file and related debezium connector dependencies to be uploaded to S3. Refer to the respective pre-packaged plugin zip file in the repository for dependecies reference or follow the connector specific README file for further details.
 
 ----
 
