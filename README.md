@@ -96,9 +96,9 @@ For Debezium MySQL:
     "database.port": "3306",
     "database.user": "debezium",
     "database.password": "dbz-password",
-    "connect.jmx.port": "9999",
+    "connect.jmx.port": "7098",
     "cw.namespace": "MyDebeziumMetrics",
-    "cw.region": "us-west-2"
+    "cw.region": "us-east-1"
 }
 ```
 
@@ -108,9 +108,9 @@ For MongoDB:
     "connector.class": "com.amazonaws.msk.kafka.mongodb.connect.KafkaMongodbMetricsSinkConnector",
     "connection.uri": "mongodb://mongodb-host:27017",
     "database": "mydb",
-    "connect.jmx.port": "9999",
+    "connect.jmx.port": "1098",
     "cw.namespace": "MyMongoMetrics",
-    "cw.region": "us-west-2"
+    "cw.region": "us-east-1"
 }
 ```
 
