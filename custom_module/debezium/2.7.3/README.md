@@ -86,7 +86,8 @@ A non-empty list of property configuration takes precedence and overrides the de
 
 Example configuration: includes 4 streaming metrics and excludes one, defaults snapshot metric values are exported as no custom configuration provided and only exclude property for schema history metrics is provided that exports all metrics except [MilliSecondsSinceLastAppliedChange].
 
-![Screenshot 2025-05-14 at 12 26 17 PM](https://github.com/user-attachments/assets/5af9ac63-5363-465f-bad7-9e9c5c9b8f58)
+
+![mixed-property-config](https://github.com/user-attachments/assets/8ff6d51b-c00f-466f-b796-878d74b8799d)
 
 
 
@@ -201,7 +202,8 @@ Replace the <--Your Aurora MySQL database endpoint-->, <--Your Database Password
 
 ***NOTE***: Debezium metrics properties are *optional* to mention in the connector configuration. You can mix and match the propeties and metric list based on your business requirement.
 
-![sample configuration](<Screenshot 2025-05-14 at 12.26.17 PM.png>)
+![Screenshot 2025-05-14 at 12 26 17 PM](https://github.com/user-attachments/assets/c824cc4a-71e7-402c-8cda-a390b57df451)
+
 
 Follow the remaining instructions from the [Create MSK Connector lab](https://catalog.us-east-1.prod.workshops.aws/workshops/24d19e6d-0c60-4732-8861-343f20ef2b7f/en-US/sourceconnectors/source-connector-setup#create-msk-connector) and create the connector. Ensure that the connector status changes to **Running**.
 
