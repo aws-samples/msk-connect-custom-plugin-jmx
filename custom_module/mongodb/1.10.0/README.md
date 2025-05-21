@@ -22,6 +22,7 @@ In this solution, we'll demonstrate how to build a custom module for the MongoDB
 ### Solution Overview
 Following diagram shows the workflow of using MongoDB Connector as a custom plugin in MSK Connect to move the data from Amazon MSK (source) to Amazon DocumentDB (sink).
 
+![mongodb-connect-sink](https://github.com/user-attachments/assets/2b6396b6-bf3e-4880-a280-f0f6f6dbea6d)
 
 1. On the producer side, a Kafka Producer application pushes the data to a Kafka topic in the Amazon MSK cluster. 
 2. MongoDB Connector reads the details from this topic and puts the details in Amazon DocumentDB. 
@@ -30,9 +31,8 @@ In the following sections, we will discuss the steps to build a custom module fo
 
 The MongoDB Kafka Connector provides metrics for individual tasks. Tasks are classes instantiated by Kafka Connect that copy data to and from datastores and  Apache Kafka. MongoDB Kafka Connector supports two types of tasks:
 
-A source task that copies data from a data store to Apache Kafka.
-
-A sink task that copies data from Apache Kafka to a data store.
+1. A source task that copies data from a data store to Apache Kafka.
+2. A sink task that copies data from Apache Kafka to a data store.
 
 A sink connector configures one or more sink tasks. A source connector configures one or more source tasks.
 
@@ -40,8 +40,11 @@ In this code sample, as an example we showcase how to export variety of JMX metr
 
 ### Architecture
 
+![mongodb_architecture](https://github.com/user-attachments/assets/b585946f-5f47-4a0a-aa9a-2ae56bd38a4e)
 
-The above architecture demonstrates how we build an Amazon MSK Connect Custom plugin which reports JMX metrics and pushes the metrics to CloudWatch, the high-level steps are as follows
+
+The above architecture demonstrates how we build an Amazon MSK Connect Custom plugin which reports JMX metrics and pushes the metrics to CloudWatch, the high-level steps are as follows:
+
 1. **Create a Custom Module**: Create a new Maven project that will contain your custom code to
    a. Integrate with MongoDB Kafka Sink Connector
    b. Create a JMX Registry and run it in the worker of the connector
@@ -85,9 +88,7 @@ This github project include some extra configuration properties that can be adde
 
 **cloudwatch.region** the AWS CloudWatch region
 
-**cloudwatch.metrics.include** A comma-separated list of MongoDB Sink Connector metric types that must be exported to CloudWatch as custom metrics. If left empty or skipped the property in the connector configuration, the plugin will send the default metrics defined in the project. ["records","records-successful", "records-failed","latest-kafka-time-difference-ms"]
-A non-empty list of property configuration takes precedence and overrides the default metrics configured for that metric type.
-
+**cloudwatch.metrics.include** A comma-separated list of MongoDB Sink Connector metric types that must be exported to CloudWatch as custom metrics. If left empty or skipped the property in the connector configuration, the plugin will send the default metrics defined in the project. ["records","records-successful", "records-failed","latest-kafka-time-difference-ms"]. A non-empty list of property configuration takes precedence and overrides the default metrics configured for that metric type.
 
 **cloudwatch.metrics.exclude** Specify a comma-separated list of connection metric types to exclude from being sent to CloudWatch as custom metrics. If this property is left blank or omitted, the plugin sends the project's default metrics. When provided, all metrics except those listed are published to CloudWatch. This setting also works in conjunction with the cloudwatch.metrics.include property, ensuring that excluded metrics are not sent even if they appear in the include list.
 
@@ -95,9 +96,9 @@ A non-empty list of property configuration takes precedence and overrides the de
 You can either build this project locally and package the Maven project as a jar and include it in the mongo-kafka-connect-1.10.0-all. Then package the updated mongo-kafka-connect-1.10.0-all as a zip file and use it as a custom plugin in MSK Connect. Alternatively, you can use the custom-mongodb-connector-plugin.zip attached as part of this github repository available under plugin/(1.10.0) folder.
 
 #### Create a Connector with the custom plugin
-To try this on your AWS account, you can refer to the Stream data with Amazon DocumentDB, Amazon MSK Serverless, and Amazon MSK Connect (https://aws.amazon.com/blogs/database/stream-data-with-amazon-documentdb-amazon-msk-serverless-and-amazon-msk-connect/) blog and use the custom-mongodb-connector-plugin.zip instead of default plugin in the **Amazon DocumentDB as a sink section**. 
+To try this on your AWS account, you can refer to the [Stream data with Amazon DocumentDB, Amazon MSK Serverless, and Amazon MSK Connect](https://aws.amazon.com/blogs/database/stream-data-with-amazon-documentdb-amazon-msk-serverless-and-amazon-msk-connect/) blog and use the custom-mongodb-connector-plugin.zip instead of default plugin in the **Amazon DocumentDB as a sink section**. 
 
-In order for the connector to export custom metrics to cloudwatch, we need to attach cloudwatch putmetricdata permission to [mskconnectlab-MongoDBConnectorIAMRole-XXXXX] role. Find this role under IAM console and create a new inline policy using below.
+In order for the connector to export custom metrics to cloudwatch, we need to attach cloudwatch putmetricdata permission to the role assigned to the connector. Find this role under IAM console and create a new inline policy using below.
 
 ```json
 {
@@ -113,7 +114,6 @@ In order for the connector to export custom metrics to cloudwatch, we need to at
     ]
 }
 ```
-
 
 In addition to the properties specified in the blog, add the below properties.
 ```
@@ -131,11 +131,18 @@ Follow the remaining instructions from the blog to create the connector and veri
 
 #### Verify the CloudWatch Metrics
 
-To verify that the connector has published the JMX metrics to Amazon CloudWatch, click on Metrics → All Metrics in the CloudWatch console. Under custom namespace, you can see MSK_Connect with MongoDBServerName as the dimension. Click on MongoDBServerName to view the metrics.
+To verify that the connector has published the JMX metrics to Amazon CloudWatch, click on Metrics → All Metrics in the CloudWatch console. Under custom namespace, you can see MSK_Connect with MongoDBServerName as the dimension. 
+
+![Metric_1](https://github.com/user-attachments/assets/9e95bfa0-9dcb-4187-b710-b268af2ba104)
+
+Click on **database** to view the metrics.
+
+![Metric_2](https://github.com/user-attachments/assets/7ae92c1a-2b56-4f66-bb92-d304155d2a6e)
 
 
-Select the **ReplicationLagMilliseconds** metric with statistic as Average in the Graphed Metric to plot the graph. You can verify that the ReplicationLagMilliseconds metric value is greater than zero whenever any operation is being performed on the source database and returns to 0 during the idle time.
+Select the **records** metric in the Graphed Metric to plot the graph. You can verify that the records metric value reflects the cumulative number of records added to the Kafka topic. 
 
+![Metric_3](https://github.com/user-attachments/assets/1ee54311-fc0f-48c6-b989-282bb36457f1)
 
 
 ## Security
